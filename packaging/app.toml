@@ -1,0 +1,11 @@
+# Packaging metadata for the shared Craft release workflow (685ks/craft-actions,
+# .github/workflows/release-rust-app.yml), called from .github/workflows/release.yml.
+id = "deckcraft"
+display_name = "DeckCraft"
+bundle_id = "app.freedev.ainz.ks.DeckCraft"
+description = "Create and present slide decks: themes, layouts, shapes, tables, charts, transitions and animations, with .pptx open and save."
+categories = ["Office", "Presentation"]
+icon_png = "assets/app-icon/deckcraft-1024.png"
+icon_icns = "assets/app-icon/deckcraft.icns"
+icon_ico = "assets/app-icon/deckcraft.ico"
+license = "MIT OR Apache-2.0"
