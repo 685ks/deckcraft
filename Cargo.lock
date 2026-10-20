@@ -823,7 +823,7 @@ dependencies = [
 [[package]]
 name = "craft-pdf"
 version = "0.1.0"
-source = "git+https://github.com/storytold/craft-libs?rev=c3487320b2d1de657b860b3c8abb44e1f2b32bd8#c3487320b2d1de657b860b3c8abb44e1f2b32bd8"
+source = "git+https://github.com/685ks/craft-libs?tag=v0.1.0#5b1852d2a611b6161827babecc71e27c214af95f"
 dependencies = [
  "krilla",
  "thiserror 2.0.21",
@@ -901,6 +901,7 @@ dependencies = [
  "deckcraft-ui-egui",
  "eframe",
  "egui",
+ "getrandom 0.3.4",
  "image",
  "log",
  "rfd",
@@ -2426,7 +2427,7 @@ dependencies = [
 [[package]]
 name = "krilla"
 version = "0.8.2"
-source = "git+https://github.com/storytold/craft-libs?rev=c3487320b2d1de657b860b3c8abb44e1f2b32bd8#c3487320b2d1de657b860b3c8abb44e1f2b32bd8"
+source = "git+https://github.com/685ks/craft-libs?tag=v0.1.0#5b1852d2a611b6161827babecc71e27c214af95f"
 dependencies = [
  "base64",
  "bumpalo",

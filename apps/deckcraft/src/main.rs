@@ -125,7 +125,7 @@ fn services() -> Services {
     }
 }
 
-const APP_ID: &str = "ai.storyteller.deckcraft";
+const APP_ID: &str = "app.freedev.ainz.ks.DeckCraft";
 
 const USAGE: &str = "\
 Usage: deckcraft [--control PORT] [--sample] [--show] [FILE...]
@@ -165,7 +165,7 @@ fn startup(mut control_port: Option<u16>, args: impl IntoIterator<Item = String>
 }
 
 fn app_icon() -> Option<egui::IconData> {
-    let png: &[u8] = include_bytes!("../../../assets/app-icon/hicolor/256x256/apps/ai.storyteller.deckcraft.png");
+    let png: &[u8] = include_bytes!("../../../assets/app-icon/hicolor/256x256/apps/app.freedev.ainz.ks.DeckCraft.png");
     eframe::icon_data::from_png_bytes(png).map_err(|e| log::warn!("app icon: {e}")).ok()
 }
 

@@ -13,7 +13,7 @@
   <key>CFBundleExecutable</key>
   <string>DeckCraft</string>
   <key>CFBundleIdentifier</key>
-  <string>ai.storyteller.deckcraft</string>
+  <string>app.freedev.ainz.ks.DeckCraft</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -50,7 +50,7 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>ai.storyteller.deckcraft.presentation</string>
+      <string>app.freedev.ainz.ks.DeckCraft.presentation</string>
       <key>UTTypeDescription</key>
       <string>DeckCraft Presentation</string>
       <key>UTTypeConformsTo</key>

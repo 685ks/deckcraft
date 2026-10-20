@@ -8,18 +8,18 @@
   DeckCraft, and DeckCraft offered under "Open with" for .pptx/.potx/.ppsx (without taking over
   the user's default app for them).
 
-  UpgradeCode is fixed for DeckCraft forever (playbook §6); never change it.
+  UpgradeCode is fixed for this fork (app.freedev.ainz.ks.DeckCraft) forever; never change it. It differs from upstream's so both can be installed.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
       Name="DeckCraft"
-      Manufacturer="Learning Machines LLC"
+      Manufacturer="Arthavan Projects"
       Version="$(var.Version)"
-      UpgradeCode="6F9C69E7-7825-40D2-BF26-C274DA676425"
+      UpgradeCode="B11C7ACE-FCCD-4BC5-8A0B-655CB06D5778"
       Scope="perMachine"
       Compressed="yes"
       Language="1033">
-    <SummaryInformation Description="DeckCraft presentations and slide shows" Manufacturer="Learning Machines LLC" />
+    <SummaryInformation Description="DeckCraft presentations and slide shows" Manufacturer="Arthavan Projects" />
     <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
          (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
@@ -28,9 +28,9 @@
 
     <Icon Id="DeckcraftIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="DeckcraftIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://getartcraft.com/apps/deckcraft" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://getartcraft.com/apps/deckcraft" />
-    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/685ks/deckcraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/685ks/deckcraft" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/685ks/deckcraft/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="DeckCraft" />

@@ -16,7 +16,7 @@ fn main() {
     res.set_icon("../../assets/app-icon/deckcraft.ico")
         .set("ProductName", "DeckCraft")
         .set("FileDescription", "DeckCraft presentations")
-        .set("CompanyName", "Learning Machines LLC")
+        .set("CompanyName", "Arthavan Projects")
         .set("LegalCopyright", "Copyright (c) the DeckCraft authors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "deckcraft.exe")
         .set("InternalName", "deckcraft");

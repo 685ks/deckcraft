@@ -737,7 +737,7 @@ fn home(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcome) 
         });
     }
     ui.add_space(30.0);
-    ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);
+    ui.hyperlink_to("Report an issue on GitHub", deckcraft_engine::links::ISSUES);
 }
 
 /// New: a blank presentation, then every theme and starter template, with a search box.
@@ -1370,6 +1370,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             });
             dim(ui, &crate::dialogs::version_line());
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
+            dim(ui, deckcraft_engine::links::FORK_NOTE);
             ui.add_space(14.0);
             if task(
                 ui,
@@ -1381,7 +1382,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             ) {
                 let _ = app.run("app.about", json!({}));
             }
-            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
+            ui.hyperlink_to("Report an issue on GitHub", deckcraft_engine::links::ISSUES);
             ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
         });
     });
