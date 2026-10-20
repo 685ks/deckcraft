@@ -120,7 +120,9 @@ calls it.
         summary: "run a command in the DeckCraft app started with --control",
         details: "Sends one request to the DeckCraft app started with `deckcraft --control PORT` (port 7979 by default)
 and prints its answer as JSON. COMMAND [PARAMS] runs a command, as run --cmd does; --method METHOD
-[PARAMS] calls a control-channel method such as ui.screenshot. PARAMS is a JSON object.
+[PARAMS] calls a control-channel method such as ui.screenshot. PARAMS is a JSON object. The app's
+per-launch control token is read from its settings folder (control-PORT.token) or from
+DECKCRAFT_CONTROL_TOKEN.
 
   deckcraft-cli app shape.insert '{\"preset\":\"star5\",\"rect\":[100,100,200,200]}'
   deckcraft-cli app --method ui.screenshot '{\"path\":\"/tmp/shot.png\"}'",

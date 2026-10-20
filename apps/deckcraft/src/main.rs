@@ -5,8 +5,10 @@
 //! `deckcraft --help` prints the flags and exits. `deckcraft --version` prints the version and exits.
 //!
 //! `--control <port>` (or `DECKCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
-//! `{"id":1,"method":"ui.inspect","params":{}}` → `{"id":1,"ok":true,"result":…}`.
-//! See `deckcraft_ui_egui::control` for the methods.
+//! `{"id":1,"method":"ui.inspect","params":{},"token":"<hex>"}` → `{"id":1,"ok":true,"result":…}`.
+//! The token is made fresh for each launch and written to `<settings dir>/control-<port>.token`
+//! (owner-only); see `deckcraft_engine::control_token`. See `deckcraft_ui_egui::control` for the
+//! methods.
 //!
 //! `log` records go to standard error and `<settings dir>/logs/deckcraft.log` (`RUST_LOG` sets the
 //! levels); see [`logging`].
@@ -27,7 +29,7 @@ mod pasteboard;
 use deckcraft_engine::Session;
 use deckcraft_ui_egui::{Services, SlideApp};
 
-struct App(SlideApp);
+struct App(SlideApp, Option<std::path::PathBuf>);
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -41,6 +43,10 @@ impl eframe::App for App {
     }
     fn on_exit(&mut self) {
         save_prefs(&self.0);
+        // The control token dies with this launch.
+        if let Some(path) = self.1.take() {
+            let _ = std::fs::remove_file(path);
+        }
         // macOS (#279): end the process here, before eframe tears the window down. AccessKit's
         // macOS adapter subclasses the window's content view and restores its class on teardown;
         // AppKit's Touch Bar support observes that view (KVO), so in the next display cycle
@@ -54,18 +60,22 @@ impl eframe::App for App {
     }
 }
 
-/// The per-user settings directory: `ui.json`, `prefs.json` and `logs/` live here.
+/// The per-user settings directory: `ui.json`, `prefs.json`, `logs/` and the control token live here.
 fn config_dir() -> Option<std::path::PathBuf> {
-    if cfg!(target_os = "macos") {
-        std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support/DeckCraft"))
-    } else if cfg!(windows) {
-        std::env::var_os("APPDATA").map(|a| std::path::PathBuf::from(a).join("DeckCraft"))
-    } else {
-        std::env::var_os("XDG_CONFIG_HOME")
-            .map(std::path::PathBuf::from)
-            .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-            .map(|c| c.join("deckcraft"))
-    }
+    deckcraft_engine::control_token::settings_dir()
+}
+
+/// A fresh 256-bit control token, written owner-only to the settings directory for `port`.
+/// Returns the token and its file, or why the control server can't start safely.
+fn control_token(port: u16) -> Result<(String, std::path::PathBuf), String> {
+    use deckcraft_engine::control_token as ct;
+    let mut bytes = [0u8; 32];
+    getrandom::fill(&mut bytes).map_err(|e| format!("no secure random numbers for the control token: {e}"))?;
+    let token = ct::to_hex(&bytes);
+    let dir = config_dir().ok_or("no settings directory for the control token (HOME, XDG_CONFIG_HOME or APPDATA is not set)")?;
+    let path = ct::token_path(&dir, port);
+    ct::write_token(&path, &token).map_err(|e| format!("writing {}: {e}", path.display()))?;
+    Ok((token, path))
 }
 
 fn load_prefs(app: &mut SlideApp) {
@@ -130,7 +140,8 @@ const APP_ID: &str = "app.freedev.ainz.ks.DeckCraft";
 const USAGE: &str = "\
 Usage: deckcraft [--control PORT] [--sample] [--show] [FILE...]
 
-  --control PORT  JSON control server on 127.0.0.1:PORT
+  --control PORT  JSON control server on 127.0.0.1:PORT; clients need the token
+                  in the settings folder's control-PORT.token
   --sample        open the sample presentation
   --show          start the slide show
   --help, -h      print this help and exit
@@ -250,9 +261,17 @@ fn main() -> eframe::Result {
                 }
             }
             app.integrated_titlebar = cfg!(target_os = "macos");
+            let mut token_file = None;
             if let Some(port) = control_port {
-                let rx = control_server::start(port, cc.egui_ctx.clone());
-                app = app.with_control(rx);
+                match control_token(port) {
+                    Ok((token, path)) => {
+                        log::info!("control token in {}", path.display());
+                        let rx = control_server::start(port, std::sync::Arc::from(token), cc.egui_ctx.clone());
+                        app = app.with_control(rx);
+                        token_file = Some(path);
+                    }
+                    Err(e) => log::error!("control server not started: {e}"),
+                }
             }
             if sample && let Err(e) = deckcraft_engine::sample::open_sample(&mut app.session) {
                 log::error!("sample: {e}");
@@ -264,7 +283,7 @@ fn main() -> eframe::Result {
             if show {
                 app.start_show(0, false);
             }
-            Ok(Box::new(App(app)))
+            Ok(Box::new(App(app, token_file)))
         }),
     )
 }
@@ -278,7 +297,7 @@ mod tests {
     #[test]
     fn on_exit_ends_the_process_on_macos() {
         if std::env::var_os("DECKCRAFT_TEST_ON_EXIT").is_some() {
-            let mut app = App(SlideApp::new(Session::new(), Services::default()));
+            let mut app = App(SlideApp::new(Session::new(), Services::default()), None);
             println!("calling on_exit");
             eframe::App::on_exit(&mut app);
             println!("on_exit returned");

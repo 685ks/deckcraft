@@ -142,7 +142,8 @@ to `main`.
 ## 6. Running and looking at the app
 
 - `cargo run --release -p deckcraft -- --sample --control 7990` (sample deck + control channel).
-- Drive it: JSON lines on `127.0.0.1:7990`, e.g.
+- Drive it: JSON lines on `127.0.0.1:7990`, each request carrying `"token"` from
+  `<settings dir>/control-7990.token` (per launch; `docs/control-protocol.md`), e.g.
   `{"id":1,"method":"engine.execute","params":{"command":"shape.insert","params":{"preset":"star5","rect":[100,100,200,200]}}}`
   then `{"id":2,"method":"ui.screenshot","params":{"path":"/tmp/shot.png"}}`. Methods:
   `crates/ui-egui/src/control.rs`, docs: `docs/control-protocol.md`.
