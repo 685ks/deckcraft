@@ -369,8 +369,9 @@ mod tests {
         ui(rx);
         for junk in [&b"hello\n"[..], b"[1,2]\n", b"{\"id\":1}\n", b"{\"method\":5}\n", b"\xff\xfe\n", b"GET /x HTTP/1.1\n"] {
             let (mut r, mut w) = client(addr);
-            w.write_all(junk).unwrap();
-            w.write_all(b"{\"id\":2,\"method\":\"m\"}\n").unwrap();
+            // One write, so the request after the junk is already buffered when the server closes
+            // (a line arriving after the close would reset the connection and lose the reply).
+            w.write_all(&[junk, b"{\"id\":2,\"method\":\"m\"}\n"].concat()).unwrap();
             let replies = replies_until_closed(&mut r);
             assert_eq!(replies.len(), 1, "{replies:?}");
             assert_eq!(replies[0]["ok"], false);
