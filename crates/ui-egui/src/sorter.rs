@@ -217,7 +217,7 @@ fn place_slides(app: &mut SlideApp, ui: &mut Ui, g: &Grid<'_>, budget: &mut u32,
                 p.rect_stroke(
                     img.expand(if selected { 2.0 } else { 0.0 }),
                     CornerRadius::same(3),
-                    Stroke::new(if selected { 3.0 } else { 1.0 }, if selected { t.accent } else { t.border }),
+                    Stroke::new(if selected { 3.0 } else { 1.0 }, if selected { t.current } else { t.border }),
                     egui::StrokeKind::Outside,
                 );
                 p.text(pos2(img.min.x, img.max.y + 12.0), Align2::LEFT_CENTER, format!("{}", i + 1), theme::font(12.0), t.text_dim);

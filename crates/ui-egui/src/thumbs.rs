@@ -130,7 +130,7 @@ fn list(app: &mut SlideApp, ui: &mut Ui) {
             }
         }
         if selected {
-            p.rect_stroke(img.expand(2.0), CornerRadius::same(4), Stroke::new(3.0, t.accent), egui::StrokeKind::Outside);
+            p.rect_stroke(img.expand(2.0), CornerRadius::same(4), Stroke::new(3.0, t.current), egui::StrokeKind::Outside);
         } else {
             p.rect_stroke(
                 img,

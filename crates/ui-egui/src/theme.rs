@@ -1,4 +1,7 @@
-//! Design tokens (light, PowerPoint-like; and dark) and fonts for the UI.
+//! Design tokens and fonts for the UI.
+//!
+//! Two appearances: the house theme (dark, steel-blue accent; the default), filled from the
+//! shared `craft-tokens` crate, and the light, PowerPoint-like theme as the alternate.
 
 use egui::{Color32, CornerRadius, FontData, FontDefinitions, FontFamily, Stroke, Visuals};
 use serde::{Deserialize, Serialize};
@@ -6,8 +9,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Brightness {
-    #[default]
     Light,
+    /// The house theme (`Tokens::house`).
+    #[default]
     Dark,
 }
 
@@ -42,6 +46,8 @@ pub struct Tokens {
     pub text_selection: Color32,
     pub field_bg: Color32,
     pub shadow: Color32,
+    /// "You are here": the current slide's thumbnail. Gold in the house theme, used for nothing else.
+    pub current: Color32,
 }
 
 impl Tokens {
@@ -60,46 +66,58 @@ impl Tokens {
             hover: Color32::from_rgb(0xEB, 0xEB, 0xEB),
             pressed: Color32::from_rgb(0xDE, 0xDE, 0xDE),
             selected: Color32::from_rgb(0xE6, 0xE6, 0xE6),
-            accent: Color32::from_rgb(0xD9, 0x5A, 0x1A),
+            accent: Color32::from_rgb(0x3D, 0x5A, 0x73),
             accent_text: Color32::WHITE,
-            contextual: Color32::from_rgb(0xC2, 0x4E, 0x14),
+            contextual: Color32::from_rgb(0x2F, 0x4A, 0x60),
             selection: Color32::from_rgb(0x7A, 0x7A, 0x7A),
             handle_fill: Color32::WHITE,
             handle_stroke: Color32::from_rgb(0x6E, 0x6E, 0x6E),
-            guide: Color32::from_rgb(0xE8, 0x5D, 0x2A),
+            guide: Color32::from_rgb(0x4F, 0x8F, 0xD9),
             caret: Color32::BLACK,
             text_selection: Color32::from_rgba_unmultiplied(0x5A, 0x8F, 0xE0, 90),
             field_bg: Color32::WHITE,
             shadow: Color32::from_black_alpha(28),
+            current: Color32::from_rgb(0x3D, 0x5A, 0x73),
         }
     }
-    pub fn dark() -> Self {
+    /// The house theme: the shared design tokens (`craft-tokens`), mapped as the design system's
+    /// ADOPTION guide says. Translucent web surfaces are flattened onto the opaque card, since egui
+    /// can't blur what is behind a panel. The canvas round the slide stays the neutral page colour.
+    pub fn house() -> Self {
+        use craft_tokens::color as c;
+        let card = c::SURFACE_PANEL.over(c::BG_BASE);
+        let on_card = |x: craft_tokens::Rgba| Color32::from(x.over(card));
         Tokens {
             dark: true,
-            chrome: Color32::from_rgb(0x26, 0x26, 0x26),
-            card: Color32::from_rgb(0x33, 0x33, 0x33),
-            card_border: Color32::from_rgb(0x44, 0x44, 0x44),
-            canvas: Color32::from_rgb(0x1E, 0x1E, 0x1E),
-            text: Color32::from_rgb(0xEE, 0xEE, 0xEE),
-            text_dim: Color32::from_rgb(0xBB, 0xBB, 0xBB),
-            text_faint: Color32::from_rgb(0x88, 0x88, 0x88),
-            border: Color32::from_rgb(0x4A, 0x4A, 0x4A),
-            separator: Color32::from_rgb(0x48, 0x48, 0x48),
-            hover: Color32::from_rgb(0x40, 0x40, 0x40),
-            pressed: Color32::from_rgb(0x4C, 0x4C, 0x4C),
-            selected: Color32::from_rgb(0x47, 0x47, 0x47),
-            accent: Color32::from_rgb(0xF2, 0x6B, 0x1D),
-            accent_text: Color32::WHITE,
-            contextual: Color32::from_rgb(0xF5, 0x8A, 0x4B),
-            selection: Color32::from_rgb(0xAA, 0xAA, 0xAA),
-            handle_fill: Color32::WHITE,
-            handle_stroke: Color32::from_rgb(0x6E, 0x6E, 0x6E),
-            guide: Color32::from_rgb(0xF2, 0x8A, 0x4B),
+            chrome: c::BG_SHEET.into(),
+            card: card.into(),
+            card_border: on_card(c::BORDER_LINE),
+            canvas: c::BG_BASE.into(),
+            text: c::TEXT_INK.into(),
+            text_dim: c::TEXT_MUTED.into(),
+            text_faint: c::TEXT_FAINT.into(),
+            border: on_card(c::BORDER_LINE),
+            separator: on_card(c::BORDER_LINE_SOFT),
+            hover: on_card(c::SURFACE_FILL_2),
+            pressed: on_card(c::SURFACE_FILL_3),
+            selected: on_card(c::ACCENT_BASE.with_alpha(0.14)),
+            accent: c::ACCENT_BASE.into(),
+            accent_text: c::TEXT_ON_ACCENT.into(),
+            contextual: c::ACCENT_BRIGHT.into(),
+            selection: c::ACCENT_BASE.into(),
+            handle_fill: c::ACCENT_HIGH.into(),
+            handle_stroke: c::ACCENT_LOW.into(),
+            guide: c::ACCENT_BRIGHT.into(),
             caret: Color32::BLACK,
-            text_selection: Color32::from_rgba_unmultiplied(0x5A, 0x8F, 0xE0, 90),
-            field_bg: Color32::from_rgb(0x2A, 0x2A, 0x2A),
-            shadow: Color32::from_black_alpha(90),
+            text_selection: c::ACCENT_BASE.with_alpha(0.35).into(),
+            field_bg: on_card(c::SURFACE_FILL_1),
+            shadow: Color32::from_black_alpha(178),
+            current: c::ACCENT_GOLD.into(),
         }
+    }
+    /// The dark appearance: the house theme.
+    pub fn dark() -> Self {
+        Self::house()
     }
     pub fn for_brightness(b: Brightness) -> Self {
         match b {
@@ -120,10 +138,17 @@ pub fn apply(ctx: &egui::Context, t: &Tokens) {
     v.extreme_bg_color = t.field_bg;
     v.faint_bg_color = t.hover;
     v.window_stroke = Stroke::new(1.0, t.card_border);
-    v.window_corner_radius = CornerRadius::same(10);
-    v.menu_corner_radius = CornerRadius::same(8);
-    v.selection.bg_fill = t.accent.gamma_multiply(0.85);
-    v.selection.stroke = Stroke::new(1.0, t.accent_text);
+    v.window_corner_radius = CornerRadius::same(if t.dark { craft_tokens::radius::XL as u8 } else { 10 });
+    v.menu_corner_radius = CornerRadius::same(if t.dark { craft_tokens::radius::LG as u8 } else { 8 });
+    if t.dark {
+        // House: accent at 30% behind selected text, the accent as its stroke.
+        v.selection.bg_fill =
+            craft_tokens::color::ACCENT_BASE.with_alpha(0.30).over(craft_tokens::color::SURFACE_PANEL.over(craft_tokens::color::BG_BASE)).into();
+        v.selection.stroke = Stroke::new(1.0, t.accent);
+    } else {
+        v.selection.bg_fill = t.accent.gamma_multiply(0.85);
+        v.selection.stroke = Stroke::new(1.0, t.accent_text);
+    }
     v.hyperlink_color = t.accent;
     v.override_text_color = Some(t.text);
     for w in [&mut v.widgets.noninteractive, &mut v.widgets.inactive, &mut v.widgets.hovered, &mut v.widgets.active, &mut v.widgets.open] {
@@ -142,7 +167,10 @@ pub fn apply(ctx: &egui::Context, t: &Tokens) {
     v.window_shadow = egui::epaint::Shadow { offset: [0, 4], blur: 18, spread: 0, color: t.shadow };
     v.popup_shadow = egui::epaint::Shadow { offset: [0, 3], blur: 12, spread: 0, color: t.shadow };
     ctx.set_visuals(v);
+    let reduce_motion = std::env::var_os("DECKCRAFT_REDUCE_MOTION").is_some();
     ctx.global_style_mut(|s| {
+        // House motion: 200 ms, none under reduce-motion.
+        s.animation_time = if reduce_motion { 0.0 } else { craft_tokens::motion::DURATION_HOVER.as_secs_f32() };
         s.spacing.item_spacing = egui::vec2(6.0, 4.0);
         s.spacing.button_padding = egui::vec2(6.0, 3.0);
         s.spacing.interact_size.y = 22.0;
@@ -153,7 +181,8 @@ pub fn apply(ctx: &egui::Context, t: &Tokens) {
     });
 }
 
-/// UI fonts: Inter (from craft-fonts) when embedded, a Japanese UI face for CJK, then egui's.
+/// UI fonts: Inter (from craft-fonts) when embedded, a Japanese UI face for CJK, then egui's;
+/// JetBrains Mono (from craft-fonts) heads the monospace family when embedded.
 pub fn install_fonts(ctx: &egui::Context) {
     install_fonts_with(ctx, &[]);
 }
@@ -172,7 +201,8 @@ pub fn font_definitions(extra: &[std::sync::Arc<deckcraft_fonts::FontFace>]) -> 
     for (i, f) in deckcraft_fonts::CRAFT_FONTS.iter().enumerate() {
         let wanted = (f.family == "Inter" && (f.style == "Regular" || f.style == "SemiBold" || f.style == "Bold"))
             || (f.family == "BIZ UDPGothic" && f.style == "Regular")
-            || (f.family == "Noto Sans Arabic");
+            || (f.family == "Noto Sans Arabic")
+            || (f.family == "JetBrains Mono" && f.style == "Regular");
         if !wanted {
             continue;
         }
@@ -180,7 +210,15 @@ pub fn font_definitions(extra: &[std::sync::Arc<deckcraft_fonts::FontFace>]) -> 
         defs.font_data.insert(name.clone(), std::sync::Arc::new(FontData::from_static(f.bytes)));
         names.push((f.family, f.style, name));
     }
-    let regular: Vec<String> = names.iter().filter(|(fam, st, _)| !(*fam == "Inter" && *st != "Regular")).map(|(_, _, n)| n.clone()).collect();
+    let regular: Vec<String> =
+        names.iter().filter(|(fam, st, _)| !(*fam == "Inter" && *st != "Regular") && *fam != "JetBrains Mono").map(|(_, _, n)| n.clone()).collect();
+    // The house monospace face first; egui's Hack and the proportional faces stay as fallbacks.
+    let mono: Vec<String> = names.iter().filter(|(fam, _, _)| *fam == "JetBrains Mono").map(|(_, _, n)| n.clone()).collect();
+    if let Some(list) = defs.families.get_mut(&FontFamily::Monospace) {
+        for (k, n) in mono.iter().enumerate() {
+            list.insert(k, n.clone());
+        }
+    }
     if let Some(list) = defs.families.get_mut(&FontFamily::Proportional) {
         for (k, n) in regular.iter().enumerate() {
             list.insert(k, n.clone());
@@ -255,6 +293,30 @@ mod tests {
         let mut o = ctx.run_ui(Default::default(), |_| {});
         o.textures_delta.clear();
         out
+    }
+
+    #[test]
+    fn the_house_theme_is_the_default_and_comes_from_craft_tokens() {
+        use egui::Color32;
+        let t = super::Tokens::house();
+        assert!(t.dark);
+        assert_eq!(t.accent, Color32::from_rgb(0x8f, 0xb8, 0xd8), "steel-blue accent");
+        assert_eq!(t.chrome, Color32::from_rgb(0x0b, 0x0e, 0x14));
+        assert_eq!(t.canvas, Color32::from_rgb(0x07, 0x09, 0x0d));
+        assert_eq!(t.card, Color32::from_rgb(0x0c, 0x0f, 0x15));
+        assert_eq!(t.text, Color32::from_rgb(0xef, 0xfc, 0xff));
+        assert_eq!(t.current, Color32::from_rgb(0xd9, 0xc0, 0x8a), "gold marks the current slide");
+        for c in [t.card, t.border, t.hover, t.pressed, t.selected, t.field_bg] {
+            assert_eq!(c.a(), 255, "house surfaces are opaque: {c:?}");
+        }
+        assert_eq!(super::Brightness::default(), super::Brightness::Dark);
+        assert_eq!(super::Tokens::for_brightness(super::Brightness::default()).accent, t.accent);
+        // Light stays as the alternate.
+        assert!(!super::Tokens::for_brightness(super::Brightness::Light).dark);
+        let ctx = egui::Context::default();
+        super::apply(&ctx, &t);
+        assert!(ctx.global_style().visuals.dark_mode);
+        assert_eq!(super::Tokens::get(&ctx).accent, t.accent);
     }
 
     #[test]

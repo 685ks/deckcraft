@@ -279,7 +279,7 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         UiState {
-            brightness: theme::Brightness::Light,
+            brightness: theme::Brightness::Dark,
             tab: "Home".into(),
             ribbon_collapsed: false,
             view: ViewMode::Normal,

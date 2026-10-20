@@ -830,6 +830,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "craft-tokens"
+version = "0.1.0"
+source = "git+https://github.com/685ks/craft-libs?tag=v0.1.0#5b1852d2a611b6161827babecc71e27c214af95f"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -901,7 +909,6 @@ dependencies = [
  "deckcraft-ui-egui",
  "eframe",
  "egui",
- "getrandom 0.3.4",
  "image",
  "log",
  "rfd",
@@ -1166,6 +1173,7 @@ dependencies = [
 name = "deckcraft-ui-egui"
 version = "0.9.0"
 dependencies = [
+ "craft-tokens",
  "deckcraft-anim",
  "deckcraft-color",
  "deckcraft-engine",

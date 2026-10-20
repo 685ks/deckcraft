@@ -1349,13 +1349,16 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             ui.set_width(340.0);
             heading(ui, "Appearance");
             let dark = app.ui.brightness == theme::Brightness::Dark;
-            egui::ComboBox::from_id_salt("backstage_appearance").width(260.0).selected_text(if dark { "Dark" } else { "Light" }).show_ui(ui, |ui| {
-                for (on, label) in [(false, "Light"), (true, "Dark")] {
-                    if ui.selectable_label(dark == on, label).clicked() {
-                        let _ = app.run("view.dark", json!({"on": on}));
+            egui::ComboBox::from_id_salt("backstage_appearance").width(260.0).selected_text(if dark { "House (dark)" } else { "Light" }).show_ui(
+                ui,
+                |ui| {
+                    for (on, label) in [(true, "House (dark)"), (false, "Light")] {
+                        if ui.selectable_label(dark == on, label).clicked() {
+                            let _ = app.run("view.dark", json!({"on": on}));
+                        }
                     }
-                }
-            });
+                },
+            );
             ui.add_space(16.0);
             heading(ui, "User Information");
             dim(ui, "DeckCraft has no accounts: there is nothing to sign in to, and your presentations stay on your device.");

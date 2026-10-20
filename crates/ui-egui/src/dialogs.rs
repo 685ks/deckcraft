@@ -2650,10 +2650,11 @@ pub fn version_line() -> String {
     s
 }
 
-/// DeckCraft's mark, drawn in code: a slide card with a play triangle in our orange.
+/// DeckCraft's mark, drawn in code: a slide card with a play triangle in the house colours.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
-    let face = Color32::from_rgb(0xF2, 0x6B, 0x1D);
-    let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);
+    // The app icon's colours (packaging/make-icon.py): the house accent on its low tone.
+    let face = Color32::from(craft_tokens::color::ACCENT_BASE);
+    let deep = Color32::from(craft_tokens::color::ACCENT_LOW);
     let card = r.shrink(r.width() * 0.08);
     p.rect_filled(card.translate(vec2(r.width() * 0.04, r.width() * 0.05)), CornerRadius::same((r.width() * 0.14) as u8), deep);
     p.rect_filled(card, CornerRadius::same((r.width() * 0.14) as u8), face);
@@ -2661,7 +2662,7 @@ pub fn paint_logo(p: &egui::Painter, r: Rect) {
     let s = card.width() * 0.22;
     p.add(egui::Shape::convex_polygon(
         vec![pos2(c.x - s * 0.7, c.y - s), pos2(c.x + s, c.y), pos2(c.x - s * 0.7, c.y + s)],
-        Color32::WHITE,
+        Color32::from(craft_tokens::color::TEXT_ON_ACCENT),
         Stroke::NONE,
     ));
 }
