@@ -1055,7 +1055,7 @@ impl SlideApp {
             "app.links" => {
                 use deckcraft_engine::links::*;
                 return Ok(
-                    json!({"website": WEBSITE, "apps": APPS, "appPage": APP_PAGE, "github": GITHUB, "issues": ISSUES, "releases": RELEASES}),
+                    json!({"website": WEBSITE, "apps": APPS, "appPage": APP_PAGE, "github": GITHUB, "issues": ISSUES, "releases": RELEASES, "updates": update_note(launched_by_launcher())}),
                 );
             }
             _ => return Err(format!("unknown UI command `{id}`")),

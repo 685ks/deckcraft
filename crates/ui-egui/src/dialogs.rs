@@ -2630,6 +2630,14 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
         ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
         ui.hyperlink_to("Report an issue", deckcraft_engine::links::ISSUES);
         ui.add_space(6.0);
+        let by_launcher = deckcraft_engine::links::launched_by_launcher();
+        let updates = deckcraft_engine::links::update_note(by_launcher);
+        if by_launcher {
+            ui.label(egui::RichText::new(updates).color(t.text_dim));
+        } else {
+            ui.hyperlink_to(updates, deckcraft_engine::links::RELEASES);
+        }
+        ui.add_space(6.0);
         ui.label(egui::RichText::new(deckcraft_engine::links::FORK_NOTE).size(11.0).color(t.text_dim));
         ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 the DeckCraft authors (see NOTICE)").size(11.0).color(t.text_faint));
     });

@@ -1372,6 +1372,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
                 ui.label(RichText::new("DeckCraft").font(theme::bold(24.0)).color(t.text));
             });
             dim(ui, &crate::dialogs::version_line());
+            dim(ui, deckcraft_engine::links::update_note(deckcraft_engine::links::launched_by_launcher()));
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
             dim(ui, deckcraft_engine::links::FORK_NOTE);
             ui.add_space(14.0);
