@@ -295,14 +295,22 @@ mod tests {
         (BufReader::new(s.try_clone().unwrap()), s)
     }
 
-    /// A connection that has sent the token (the `auth` method answers without the UI). Over the
-    /// connection limit the server's `busy` line is consumed here instead and the connection closes.
+    /// A connection that has sent the token (the `auth` method answers without the UI). A slot
+    /// the previous test connection held may not be free yet (the server answers `busy`), so this
+    /// retries for a few seconds.
     fn client(addr: SocketAddr) -> (BufReader<TcpStream>, TcpStream) {
-        let (mut r, mut w) = anonymous(addr);
-        writeln!(w, r#"{{"id":0,"method":"auth","token":"{TOKEN}"}}"#).unwrap();
-        let mut first = String::new();
-        let _ = r.read_line(&mut first);
-        (r, w)
+        let deadline = Instant::now() + Duration::from_secs(4);
+        loop {
+            let (mut r, mut w) = anonymous(addr);
+            writeln!(w, r#"{{"id":0,"method":"auth","token":"{TOKEN}"}}"#).unwrap();
+            let mut first = String::new();
+            let _ = r.read_line(&mut first);
+            if first.contains("authorized") {
+                return (r, w);
+            }
+            assert!(Instant::now() < deadline, "never authorized: {first}");
+            std::thread::sleep(Duration::from_millis(20));
+        }
     }
 
     fn reply(r: &mut BufReader<TcpStream>) -> Option<Value> {
@@ -479,7 +487,7 @@ mod tests {
     /// Without the token nothing reaches the app: one `unauthorized` reply, then the connection closes.
     #[test]
     fn a_request_without_the_token_is_refused_and_not_dispatched() {
-        let (addr, rx) = server(Limits { max_line: 512, ..small() });
+        let (addr, rx) = server(Limits { max_line: 512, max_clients: 16, ..small() });
         for first in [
             r#"{"id":1,"method":"engine.execute","params":{"command":"slide.new"}}"#.to_string(),
             format!(r#"{{"id":1,"method":"engine.execute","token":"{}"}}"#, "f".repeat(64)),
