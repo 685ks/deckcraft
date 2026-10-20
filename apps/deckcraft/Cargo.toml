@@ -33,3 +33,7 @@ getrandom = "0.3"
 
 [target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
 winit = { version = "0.30", default-features = false, features = ["x11"] }
+
+# Turns off winit's default menu bar, whose Quit item skipped the unsaved-changes prompt.
+[target.'cfg(target_os = "macos")'.dependencies]
+winit = { version = "0.30", default-features = false }

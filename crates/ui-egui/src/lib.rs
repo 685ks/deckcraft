@@ -1574,6 +1574,12 @@ impl SlideApp {
         }
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
+        // ⌘Q quits through the window's close request, so it asks about unsaved changes like the
+        // close button does. (The desktop app turns off winit's default macOS menu, whose Quit item
+        // ended the process without a close request and lost unsaved work.)
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::MAC_CMD, egui::Key::Q)) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         // Closing the window with unsaved changes asks first.
         if ctx.input(|i| i.viewport().close_requested()) && !self.quit_confirmed && self.session.documents().iter().any(|d| d.is_dirty()) {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
@@ -2049,6 +2055,8 @@ fn js_now() -> f64 {
 mod animpane_tests;
 #[cfg(test)]
 mod browsetheme_tests;
+#[cfg(test)]
+mod close_prompt_tests;
 #[cfg(test)]
 mod compare_tests;
 #[cfg(test)]

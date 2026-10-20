@@ -242,6 +242,16 @@ fn main() -> eframe::Result {
             b.with_x11();
         }));
     }
+    // macOS: winit's default menu bar has a Quit item (⌘Q) that terminates the process without a
+    // window close request, so the unsaved-changes prompt never ran and edits were lost. Without
+    // it, ⌘Q reaches the window and `SlideApp::logic` turns it into a close request that asks.
+    #[cfg(target_os = "macos")]
+    {
+        options.event_loop_builder = Some(Box::new(|b| {
+            use winit::platform::macos::EventLoopBuilderExtMacOS;
+            b.with_default_menu(false);
+        }));
+    }
     // Before eframe creates the wgpu instance: default Windows to DirectX 12 with FXC (see graphics.rs).
     #[cfg(target_os = "windows")]
     graphics::configure(&mut options, eframe::wgpu::Backends::from_env(), eframe::wgpu::Dx12Compiler::from_env());
