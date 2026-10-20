@@ -8,4 +8,5 @@ categories = ["Office", "Presentation"]
 icon_png = "assets/app-icon/deckcraft-1024.png"
 icon_icns = "assets/app-icon/deckcraft.icns"
 icon_ico = "assets/app-icon/deckcraft.ico"
+publisher = "Arthavan Projects"
 license = "MIT OR Apache-2.0"
