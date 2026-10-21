@@ -3,6 +3,17 @@
 Start the app with `--control <port>`. The server listens on `127.0.0.1` only and speaks JSON
 lines: one request object per line, one reply per line.
 
+**Authentication.** Each launch makes a random 256-bit token and writes it as 64 hex digits to
+`control-<port>.token` in the settings directory (Linux `~/.config/deckcraft/`, macOS
+`~/Library/Application Support/DeckCraft/`, Windows `%APPDATA%\DeckCraft\`), readable by the
+owner only (mode 0600 on Unix), and removes it on exit. The first request on a connection must
+carry it as a top-level `token` field (`{"id":1,"method":"ui.inspect","token":"<hex>"}`); the
+`auth` method checks it without running anything. Later requests on that connection may omit it.
+A missing or wrong token gets one `{"ok":false,"error":"unauthorized: …"}` reply and the
+connection closes; nothing reaches the app. `deckcraft-cli app` and `deckcraft-cli mcp --connect`
+read the file for the port they connect to, or `DECKCRAFT_CONTROL_TOKEN` when it is set. Peers
+that are not loopback addresses are refused.
+
 A line that is not a JSON object with a string `method` (an HTTP request, text that isn't JSON,
 bytes that aren't UTF-8) gets one error reply and the server closes the connection; nothing sent
 after it runs. Blank lines are skipped.

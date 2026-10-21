@@ -1,12 +1,17 @@
 name: ci
 
-# Quality gates for every push to main and every pull request: rustfmt, clippy (-D warnings),
-# tests, asset attribution, crate layering and the wasm32 check — `cargo xtask ci`.
+# Quality gates for every push to main and every pull request.
+# - gates (Linux): `cargo xtask ci` = rustfmt, clippy (-D warnings), tests, asset attribution,
+#   crate layering and the wasm32 check.
+# - test (macOS, Windows): the workspace tests, so platform regressions show up before a release.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -14,30 +19,27 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  # Same craft-fonts commit as release.yml (Latin presentation fonts).
+  # Latin presentation and UI fonts (Inter, Carlito, Liberation…) for the font tests; OFL-1.1.
+  CRAFT_FONTS_REPO: storytold/craft-fonts
   CRAFT_FONTS_REF: 43913056ce82a3fdad0ef69f6b88d1dc922a8104
 
 jobs:
   gates:
-    timeout-minutes: 60
-    name: gates (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        # No macOS on PRs or main: the org's 5 macOS slots are kept for release builds, and
-        # release.yml builds macOS (a failing release is fixed and rebuilt).
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+    name: gates (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check out craft-fonts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: storytold/craft-fonts
+          repository: ${{ env.CRAFT_FONTS_REPO }}
           ref: ${{ env.CRAFT_FONTS_REF }}
           path: craft-fonts
+          persist-credentials: false
       - name: Linux build dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -48,8 +50,37 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          key: ci-${{ matrix.os }}
+          key: gates
       - name: cargo xtask ci
         env:
           CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
         run: cargo xtask ci
+
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check out craft-fonts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.CRAFT_FONTS_REPO }}
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          key: test-${{ matrix.os }}
+      - name: cargo test
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+        run: cargo test --locked --workspace --exclude deckcraft-web --exclude xtask

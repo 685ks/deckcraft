@@ -2627,11 +2627,19 @@ pub fn about(_app: &mut SlideApp, ui: &mut Ui) {
         ui.label("Presentations and slide shows, rebuilt from scratch in pure Rust.");
         ui.label("An open-source, clean-room project. Not affiliated with Microsoft.");
         ui.add_space(6.0);
-        ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
-        ui.hyperlink_to("getartcraft.com/apps/deckcraft", deckcraft_engine::links::APP_PAGE);
         ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
+        ui.hyperlink_to("Report an issue", deckcraft_engine::links::ISSUES);
         ui.add_space(6.0);
-        ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 ArtCraft Team and the DeckCraft contributors").size(11.0).color(t.text_faint));
+        let by_launcher = deckcraft_engine::links::launched_by_launcher();
+        let updates = deckcraft_engine::links::update_note(by_launcher);
+        if by_launcher {
+            ui.label(egui::RichText::new(updates).color(t.text_dim));
+        } else {
+            ui.hyperlink_to(updates, deckcraft_engine::links::RELEASES);
+        }
+        ui.add_space(6.0);
+        ui.label(egui::RichText::new(deckcraft_engine::links::FORK_NOTE).size(11.0).color(t.text_dim));
+        ui.label(egui::RichText::new("MIT OR Apache-2.0 · © 2026 the DeckCraft authors (see NOTICE)").size(11.0).color(t.text_faint));
     });
 }
 
@@ -2650,18 +2658,19 @@ pub fn version_line() -> String {
     s
 }
 
-/// DeckCraft's mark, drawn in code: a slide card with a play triangle in our orange.
+/// DeckCraft's mark, drawn in code: a slide card with a play triangle in the house colours.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
-    let orange = Color32::from_rgb(0xF2, 0x6B, 0x1D);
-    let deep = Color32::from_rgb(0xC2, 0x4E, 0x14);
+    // The app icon's colours (packaging/make-icon.py): the house accent on its low tone.
+    let face = Color32::from(craft_tokens::color::ACCENT_BASE);
+    let deep = Color32::from(craft_tokens::color::ACCENT_LOW);
     let card = r.shrink(r.width() * 0.08);
     p.rect_filled(card.translate(vec2(r.width() * 0.04, r.width() * 0.05)), CornerRadius::same((r.width() * 0.14) as u8), deep);
-    p.rect_filled(card, CornerRadius::same((r.width() * 0.14) as u8), orange);
+    p.rect_filled(card, CornerRadius::same((r.width() * 0.14) as u8), face);
     let c = card.center();
     let s = card.width() * 0.22;
     p.add(egui::Shape::convex_polygon(
         vec![pos2(c.x - s * 0.7, c.y - s), pos2(c.x + s, c.y), pos2(c.x - s * 0.7, c.y + s)],
-        Color32::WHITE,
+        Color32::from(craft_tokens::color::TEXT_ON_ACCENT),
         Stroke::NONE,
     ));
 }

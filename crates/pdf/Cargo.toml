@@ -18,6 +18,9 @@ kurbo = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
+# Krilla's default features (simple-text) on every target. craft-pdf v0.1.0 (685ks/craft-libs)
+# asks for raster-images only; the root patch keeps the same pinned backend.
+krilla = { version = "=0.8.2" }
 
 [dev-dependencies]
 hayro-syntax = { version = "=0.7.2", default-features = false, features = ["std"] }

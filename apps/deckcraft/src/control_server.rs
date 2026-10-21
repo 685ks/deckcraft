@@ -6,6 +6,12 @@
 //! closed, so nothing sent after it runs. Every resource a client can hold is bounded
 //! ([`Limits`]): simultaneous connections, request line length, queued requests, and how long a
 //! socket may sit idle or blocked on a write.
+//!
+//! Only clients that hold the per-launch token are served (see
+//! `deckcraft_engine::control_token`): a connection's first request must carry it as `token`
+//! (later requests on that connection may too). Anything else gets one `unauthorized` reply and
+//! the connection is closed before the request reaches the app. The listener binds the loopback
+//! address only, and peers that are not loopback addresses are refused.
 
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -48,11 +54,11 @@ impl Default for Limits {
     }
 }
 
-pub fn start(port: u16, ctx: egui::Context) -> Receiver<ControlRequest> {
+pub fn start(port: u16, token: Arc<str>, ctx: egui::Context) -> Receiver<ControlRequest> {
     match TcpListener::bind(("127.0.0.1", port)) {
         Ok(l) => {
-            log::info!("control server listening on 127.0.0.1:{port}");
-            serve_listener(l, Limits::default(), ctx)
+            log::info!("control server listening on 127.0.0.1:{port} (token required)");
+            serve_listener(l, Limits::default(), token, ctx)
         }
         Err(e) => {
             log::error!("control server failed to bind 127.0.0.1:{port}: {e}");
@@ -62,12 +68,15 @@ pub fn start(port: u16, ctx: egui::Context) -> Receiver<ControlRequest> {
 }
 
 /// Accept connections on `listener` under `limits`; requests arrive on the returned receiver.
-fn serve_listener(listener: TcpListener, limits: Limits, ctx: egui::Context) -> Receiver<ControlRequest> {
+fn serve_listener(listener: TcpListener, limits: Limits, token: Arc<str>, ctx: egui::Context) -> Receiver<ControlRequest> {
     let (tx, rx) = sync_channel::<ControlRequest>(limits.queue.max(1));
     let active = Arc::new(AtomicUsize::new(0));
     std::thread::spawn(move || {
         for mut stream in listener.incoming().flatten() {
             let _ = stream.set_write_timeout(Some(limits.write_timeout));
+            if !stream.peer_addr().is_ok_and(|a| a.ip().is_loopback()) {
+                continue;
+            }
             if active.fetch_add(1, Ordering::SeqCst) >= limits.max_clients {
                 active.fetch_sub(1, Ordering::SeqCst);
                 let _ = writeln!(stream, "{}", json!({"ok": false, "error": "busy: too many control connections"}));
@@ -76,9 +85,10 @@ fn serve_listener(listener: TcpListener, limits: Limits, ctx: egui::Context) -> 
             let slot = Slot(Arc::clone(&active));
             let tx = tx.clone();
             let ctx = ctx.clone();
+            let token = Arc::clone(&token);
             let spawned = std::thread::Builder::new().name("control-client".into()).spawn(move || {
                 let _slot = slot;
-                serve(stream, &tx, &ctx, limits);
+                serve(stream, &tx, &ctx, limits, &token);
             });
             if spawned.is_err() {
                 log::warn!("control server could not start a client thread");
@@ -129,6 +139,7 @@ enum Parsed {
         id: Value,
         method: String,
         params: Value,
+        token: Option<String>,
     },
     Blank,
     /// Not a request: reply with this error and close the connection.
@@ -160,6 +171,7 @@ fn parse(bytes: &[u8]) -> Parsed {
         id: obj.get("id").cloned().unwrap_or(Value::Null),
         method: method.to_string(),
         params: obj.get("params").cloned().unwrap_or(json!({})),
+        token: obj.get("token").and_then(Value::as_str).map(str::to_string),
     }
 }
 
@@ -170,13 +182,17 @@ fn is_http_request_line(text: &str) -> bool {
         || text.rsplit_once(' ').is_some_and(|(_, version)| version.starts_with("HTTP/"))
 }
 
-fn serve(stream: TcpStream, tx: &SyncSender<ControlRequest>, ctx: &egui::Context, limits: Limits) {
+/// The reply to a request without the right token; the connection closes after it.
+const UNAUTHORIZED: &str = "unauthorized: send the control token as \"token\" (deckcraft-cli and the MCP client read it from the app's control-<PORT>.token file or DECKCRAFT_CONTROL_TOKEN); closing the connection";
+
+fn serve(stream: TcpStream, tx: &SyncSender<ControlRequest>, ctx: &egui::Context, limits: Limits, token: &str) {
     if stream.set_read_timeout(Some(limits.idle_timeout)).is_err() || stream.set_write_timeout(Some(limits.write_timeout)).is_err() {
         return;
     }
     let Ok(read) = stream.try_clone() else { return };
     let mut out = stream;
     let mut reader = BufReader::new(read);
+    let mut authorized = false;
     loop {
         let line = match read_line(&mut reader, limits.max_line) {
             Line::Text(t) => t,
@@ -193,7 +209,22 @@ fn serve(stream: TcpStream, tx: &SyncSender<ControlRequest>, ctx: &egui::Context
                 let _ = writeln!(out, "{}", json!({"ok": false, "error": e}));
                 break;
             }
-            Parsed::Request { id, method, params } => {
+            Parsed::Request { id, method, params, token: given } => {
+                if !authorized {
+                    authorized = given.as_deref().is_some_and(|g| deckcraft_engine::control_token::matches(token, g));
+                    if !authorized {
+                        let _ = writeln!(out, "{}", json!({"ok": false, "error": UNAUTHORIZED, "id": id}));
+                        break;
+                    }
+                } else if given.as_deref().is_some_and(|g| !deckcraft_engine::control_token::matches(token, g)) {
+                    let _ = writeln!(out, "{}", json!({"ok": false, "error": UNAUTHORIZED, "id": id}));
+                    break;
+                }
+                if method == "auth" {
+                    // Authenticate without running anything in the app.
+                    let _ = writeln!(out, "{}", json!({"ok": true, "result": "authorized", "id": id}));
+                    continue;
+                }
                 let (req, rrx) = ControlRequest::new(method, params);
                 let state = Arc::clone(&req.state);
                 let mut r = match tx.try_send(req) {
@@ -240,7 +271,8 @@ mod tests {
     fn small() -> Limits {
         Limits {
             max_clients: 2,
-            max_line: 64,
+            // Room for the auth line (a 64-digit token) and little more.
+            max_line: 128,
             queue: 1,
             idle_timeout: Duration::from_millis(300),
             write_timeout: Duration::from_millis(300),
@@ -248,16 +280,37 @@ mod tests {
         }
     }
 
+    const TOKEN: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
     fn server(limits: Limits) -> (SocketAddr, Receiver<ControlRequest>) {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let addr = l.local_addr().unwrap();
-        (addr, serve_listener(l, limits, egui::Context::default()))
+        (addr, serve_listener(l, limits, Arc::from(TOKEN), egui::Context::default()))
     }
 
-    fn client(addr: SocketAddr) -> (BufReader<TcpStream>, TcpStream) {
+    /// A connection that has not authenticated.
+    fn anonymous(addr: SocketAddr) -> (BufReader<TcpStream>, TcpStream) {
         let s = TcpStream::connect(addr).unwrap();
         s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         (BufReader::new(s.try_clone().unwrap()), s)
+    }
+
+    /// A connection that has sent the token (the `auth` method answers without the UI). A slot
+    /// the previous test connection held may not be free yet (the server answers `busy`), so this
+    /// retries for a few seconds.
+    fn client(addr: SocketAddr) -> (BufReader<TcpStream>, TcpStream) {
+        let deadline = Instant::now() + Duration::from_secs(4);
+        loop {
+            let (mut r, mut w) = anonymous(addr);
+            writeln!(w, r#"{{"id":0,"method":"auth","token":"{TOKEN}"}}"#).unwrap();
+            let mut first = String::new();
+            let _ = r.read_line(&mut first);
+            if first.contains("authorized") {
+                return (r, w);
+            }
+            assert!(Instant::now() < deadline, "never authorized: {first}");
+            std::thread::sleep(Duration::from_millis(20));
+        }
     }
 
     fn reply(r: &mut BufReader<TcpStream>) -> Option<Value> {
@@ -316,8 +369,9 @@ mod tests {
         ui(rx);
         for junk in [&b"hello\n"[..], b"[1,2]\n", b"{\"id\":1}\n", b"{\"method\":5}\n", b"\xff\xfe\n", b"GET /x HTTP/1.1\n"] {
             let (mut r, mut w) = client(addr);
-            w.write_all(junk).unwrap();
-            w.write_all(b"{\"id\":2,\"method\":\"m\"}\n").unwrap();
+            // One write, so the request after the junk is already buffered when the server closes
+            // (a line arriving after the close would reset the connection and lose the reply).
+            w.write_all(&[junk, b"{\"id\":2,\"method\":\"m\"}\n"].concat()).unwrap();
             let replies = replies_until_closed(&mut r);
             assert_eq!(replies.len(), 1, "{replies:?}");
             assert_eq!(replies[0]["ok"], false);
@@ -332,9 +386,9 @@ mod tests {
         let (addr, rx) = server(small());
         ui(rx);
         let (mut r, mut w) = client(addr);
-        w.write_all(&[b'x'; 200]).unwrap();
+        w.write_all(&[b'x'; 300]).unwrap();
         let v = reply(&mut r).unwrap();
-        assert!(v["error"].as_str().unwrap().contains("longer than 64"));
+        assert!(v["error"].as_str().unwrap().contains("longer than 128"));
         assert!(reply(&mut r).is_none());
     }
 
@@ -358,7 +412,7 @@ mod tests {
         // Make sure both are being served before the third arrives.
         writeln!(bw, r#"{{"id":1,"method":"m"}}"#).unwrap();
         assert!(reply(&mut br).is_some());
-        let (mut cr, _cw) = client(addr);
+        let (mut cr, _cw) = anonymous(addr);
         let v = reply(&mut cr).unwrap();
         assert!(v["error"].as_str().unwrap().starts_with("busy"));
         drop(a);
@@ -429,5 +483,45 @@ mod tests {
         let v = reply(&mut r).unwrap();
         assert!(v["error"].as_str().unwrap().contains("outcome is unknown"), "{v}");
         ui.join().unwrap();
+    }
+
+    /// Without the token nothing reaches the app: one `unauthorized` reply, then the connection closes.
+    #[test]
+    fn a_request_without_the_token_is_refused_and_not_dispatched() {
+        let (addr, rx) = server(Limits { max_line: 512, max_clients: 16, ..small() });
+        for first in [
+            r#"{"id":1,"method":"engine.execute","params":{"command":"slide.new"}}"#.to_string(),
+            format!(r#"{{"id":1,"method":"engine.execute","token":"{}"}}"#, "f".repeat(64)),
+            format!(r#"{{"id":1,"method":"auth","token":"{}"}}"#, &TOKEN[..63]),
+        ] {
+            let (mut r, mut w) = anonymous(addr);
+            writeln!(w, "{first}").unwrap();
+            writeln!(w, r#"{{"id":2,"method":"m","token":"{TOKEN}"}}"#).unwrap();
+            let replies = replies_until_closed(&mut r);
+            assert_eq!(replies.len(), 1, "{replies:?}");
+            assert_eq!(replies[0]["ok"], false);
+            assert!(replies[0]["error"].as_str().unwrap().starts_with("unauthorized"), "{replies:?}");
+            assert_eq!(replies[0]["id"], 1);
+        }
+        assert!(rx.try_recv().is_err(), "an unauthorized request was dispatched");
+    }
+
+    /// The token on the first request authorizes the connection; it may repeat on later ones.
+    #[test]
+    fn the_token_on_a_request_authorizes_the_connection() {
+        let (addr, rx) = server(Limits { max_line: 512, ..small() });
+        ui(rx);
+        let (mut r, mut w) = anonymous(addr);
+        writeln!(w, r#"{{"id":1,"method":"ui.inspect","token":"{TOKEN}"}}"#).unwrap();
+        assert_eq!(reply(&mut r).unwrap()["result"], "ui.inspect");
+        writeln!(w, r#"{{"id":2,"method":"document.inspect"}}"#).unwrap();
+        assert_eq!(reply(&mut r).unwrap()["result"], "document.inspect");
+        writeln!(w, r#"{{"id":3,"method":"m","token":"{TOKEN}"}}"#).unwrap();
+        assert_eq!(reply(&mut r).unwrap()["result"], "m");
+        // A wrong token later on still closes the connection.
+        writeln!(w, r#"{{"id":4,"method":"m","token":"{}"}}"#, "0".repeat(64)).unwrap();
+        let v = reply(&mut r).unwrap();
+        assert!(v["error"].as_str().unwrap().starts_with("unauthorized"), "{v}");
+        assert!(reply(&mut r).is_none());
     }
 }

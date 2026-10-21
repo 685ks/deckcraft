@@ -279,7 +279,7 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         UiState {
-            brightness: theme::Brightness::Light,
+            brightness: theme::Brightness::Dark,
             tab: "Home".into(),
             ribbon_collapsed: false,
             view: ViewMode::Normal,
@@ -1054,7 +1054,9 @@ impl SlideApp {
             }
             "app.links" => {
                 use deckcraft_engine::links::*;
-                return Ok(json!({"discord": DISCORD, "website": WEBSITE, "apps": APPS, "appPage": APP_PAGE, "github": GITHUB}));
+                return Ok(
+                    json!({"website": WEBSITE, "apps": APPS, "appPage": APP_PAGE, "github": GITHUB, "issues": ISSUES, "releases": RELEASES, "updates": update_note(launched_by_launcher())}),
+                );
             }
             _ => return Err(format!("unknown UI command `{id}`")),
         }
@@ -1543,6 +1545,9 @@ impl SlideApp {
             ctx.set_zoom_factor(scale);
         }
         if !self.styled {
+            // egui's own quit shortcut is Command+Q, which is Ctrl+Q off the Mac; the app handles ⌘Q
+            // itself (below) and leaves Ctrl+Q alone.
+            ctx.options_mut(|o| o.quit_shortcuts.clear());
             theme::install_fonts_with(ctx, &self.ui_fonts.faces);
             self.styled = true;
             self.restyle = true;
@@ -1572,6 +1577,12 @@ impl SlideApp {
         }
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
+        // ⌘Q quits through the window's close request, so it asks about unsaved changes like the
+        // close button does. (The desktop app turns off winit's default macOS menu, whose Quit item
+        // ended the process without a close request and lost unsaved work.)
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::MAC_CMD, egui::Key::Q)) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         // Closing the window with unsaved changes asks first.
         if ctx.input(|i| i.viewport().close_requested()) && !self.quit_confirmed && self.session.documents().iter().any(|d| d.is_dirty()) {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
@@ -2047,6 +2058,8 @@ fn js_now() -> f64 {
 mod animpane_tests;
 #[cfg(test)]
 mod browsetheme_tests;
+#[cfg(test)]
+mod close_prompt_tests;
 #[cfg(test)]
 mod compare_tests;
 #[cfg(test)]

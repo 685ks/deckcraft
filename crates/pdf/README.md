@@ -21,8 +21,8 @@ unchanged. Native unwind guards cannot catch WASM aborts or process-wide allocat
 ## Building and validation
 
 Rust 1.95 or newer is required. The workspace pins `craft-pdf` 0.1.0 and its Krilla 0.8.2
-patch to `https://github.com/storytold/craft-libs` revision
-`39adbdf756569c8e03adb747d5e063f468ca98c1`. Both packages resolve from that immutable Git source;
+patch to `https://github.com/685ks/craft-libs` tag `v0.1.0` (commit
+`5b1852d2a611b6161827babecc71e27c214af95f`). Both packages resolve from that Git source;
 a sibling checkout is unnecessary. Publish and review this shared-library prerequisite
 before publishing the app migration, so fresh CI and release builds can fetch it.
 

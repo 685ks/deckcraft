@@ -737,7 +737,7 @@ fn home(app: &mut SlideApp, ui: &mut Ui, bs: &mut Backstage, out: &mut Outcome) 
         });
     }
     ui.add_space(30.0);
-    ui.hyperlink_to("Join the ArtCraft community on Discord", deckcraft_engine::links::DISCORD);
+    ui.hyperlink_to("Report an issue on GitHub", deckcraft_engine::links::ISSUES);
 }
 
 /// New: a blank presentation, then every theme and starter template, with a search box.
@@ -1349,13 +1349,16 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             ui.set_width(340.0);
             heading(ui, "Appearance");
             let dark = app.ui.brightness == theme::Brightness::Dark;
-            egui::ComboBox::from_id_salt("backstage_appearance").width(260.0).selected_text(if dark { "Dark" } else { "Light" }).show_ui(ui, |ui| {
-                for (on, label) in [(false, "Light"), (true, "Dark")] {
-                    if ui.selectable_label(dark == on, label).clicked() {
-                        let _ = app.run("view.dark", json!({"on": on}));
+            egui::ComboBox::from_id_salt("backstage_appearance").width(260.0).selected_text(if dark { "House (dark)" } else { "Light" }).show_ui(
+                ui,
+                |ui| {
+                    for (on, label) in [(true, "House (dark)"), (false, "Light")] {
+                        if ui.selectable_label(dark == on, label).clicked() {
+                            let _ = app.run("view.dark", json!({"on": on}));
+                        }
                     }
-                }
-            });
+                },
+            );
             ui.add_space(16.0);
             heading(ui, "User Information");
             dim(ui, "DeckCraft has no accounts: there is nothing to sign in to, and your presentations stay on your device.");
@@ -1369,7 +1372,9 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
                 ui.label(RichText::new("DeckCraft").font(theme::bold(24.0)).color(t.text));
             });
             dim(ui, &crate::dialogs::version_line());
+            dim(ui, deckcraft_engine::links::update_note(deckcraft_engine::links::launched_by_launcher()));
             dim(ui, "Open source under MIT OR Apache-2.0. Not affiliated with Microsoft.");
+            dim(ui, deckcraft_engine::links::FORK_NOTE);
             ui.add_space(14.0);
             if task(
                 ui,
@@ -1381,7 +1386,7 @@ fn account(app: &mut SlideApp, ui: &mut Ui) {
             ) {
                 let _ = app.run("app.about", json!({}));
             }
-            ui.hyperlink_to("Join our community on Discord", deckcraft_engine::links::DISCORD);
+            ui.hyperlink_to("Report an issue on GitHub", deckcraft_engine::links::ISSUES);
             ui.hyperlink_to("Source on GitHub", deckcraft_engine::links::GITHUB);
         });
     });

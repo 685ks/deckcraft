@@ -50,9 +50,9 @@ Ubuntu-Font-1.0, Bitstream-Vera); Creative Commons (CC0-1.0, CC-BY-4.0, CC-BY-SA
 domain; or contributor-original (created by a contributor who licenses it under
 `MIT OR Apache-2.0`).
 
-One narrow exception: the ArtCraft name, wordmark and logos in `docs/brand/` are trademarks of the
-ArtCraft Team (not open source, terms in `docs/brand/LICENSE-brand.txt`), used only unmodified to
-identify the project.
+This repository is a fork of `storytold/deckcraft` (bundle id `app.freedev.ainz.ks.DeckCraft`). It
+carries no ArtCraft names, logos or marks; never add them back. Say "fork of storytold/deckcraft,
+not affiliated with or endorsed by ArtCraft" where provenance needs stating.
 
 Forbidden: system fonts that are not openly licensed, vendor emoji artwork, stock photos, "free
 for personal use" material, screenshots of other people's software, anything whose licence you
@@ -65,10 +65,10 @@ allowed: our UI, our/Lucide icons, OFL fonts, and decks built only from allowed 
 
 - **`ATTRIBUTION.md`** (repo root) lists every asset file — committed, fetched at build time
   (craft-fonts) or bundled through a Cargo dependency — with author, source (URL + version or
-  commit), licence and use. `cargo xtask assets` fails if a file under `assets/`, `docs/images/`
-  or `docs/brand/` has no row.
+  commit), licence and use. `cargo xtask assets` fails if a file under `assets/` or `docs/images/`
+  has no row.
 - **`NOTICE`** keeps the notices the licences require.
-- Fonts live in [storytold/craft-fonts](https://github.com/storytold/craft-fonts), never in this
+- Fonts live in [685ks/craft-fonts](https://github.com/685ks/craft-fonts), never in this
   repo (craftrules `standards/fonts.md`). DeckCraft embeds its `fonts/latin-manifest.txt` and
   `fonts/manifest.txt` when built with `CRAFT_FONTS_DIR` (local dev: `.cargo/config.toml` points at
   `../craft-fonts`).
@@ -142,7 +142,8 @@ to `main`.
 ## 6. Running and looking at the app
 
 - `cargo run --release -p deckcraft -- --sample --control 7990` (sample deck + control channel).
-- Drive it: JSON lines on `127.0.0.1:7990`, e.g.
+- Drive it: JSON lines on `127.0.0.1:7990`, each request carrying `"token"` from
+  `<settings dir>/control-7990.token` (per launch; `docs/control-protocol.md`), e.g.
   `{"id":1,"method":"engine.execute","params":{"command":"shape.insert","params":{"preset":"star5","rect":[100,100,200,200]}}}`
   then `{"id":2,"method":"ui.screenshot","params":{"path":"/tmp/shot.png"}}`. Methods:
   `crates/ui-egui/src/control.rs`, docs: `docs/control-protocol.md`.
