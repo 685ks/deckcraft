@@ -1545,6 +1545,9 @@ impl SlideApp {
             ctx.set_zoom_factor(scale);
         }
         if !self.styled {
+            // egui's own quit shortcut is Command+Q, which is Ctrl+Q off the Mac; the app handles ⌘Q
+            // itself (below) and leaves Ctrl+Q alone.
+            ctx.options_mut(|o| o.quit_shortcuts.clear());
             theme::install_fonts_with(ctx, &self.ui_fonts.faces);
             self.styled = true;
             self.restyle = true;

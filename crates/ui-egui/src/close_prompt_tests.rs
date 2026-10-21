@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use deckcraft_engine::Session;
-use egui::{Key, Modifiers, ViewportCommand, ViewportEvent, ViewportId};
+use egui::{Event, Key, Modifiers, ViewportCommand, ViewportEvent, ViewportId};
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use serde_json::json;
@@ -38,6 +38,20 @@ fn commands(h: &Harness<'_, SlideApp>) -> Vec<ViewportCommand> {
 /// The window manager asks the window to close (close button, Alt+F4, the Dock's Quit…).
 fn request_close(h: &mut Harness<'_, SlideApp>) -> Vec<ViewportCommand> {
     h.input_mut().viewports.entry(ViewportId::ROOT).or_default().events.push(ViewportEvent::Close);
+    h.step();
+    commands(h)
+}
+
+/// Presses a key in one frame and returns that frame's viewport commands. (The harness's own
+/// `key_press` queues four events and `step` runs a frame for each, so the frame that handled the
+/// key, and its commands, would be followed by three more and lost.)
+fn press(h: &mut Harness<'_, SlideApp>, modifiers: Modifiers, key: Key) -> Vec<ViewportCommand> {
+    let events = &mut h.input_mut().events;
+    events.push(Event::ModifiersChanged(modifiers));
+    for pressed in [true, false] {
+        events.push(Event::Key { key, physical_key: None, pressed, repeat: false, modifiers });
+    }
+    events.push(Event::ModifiersChanged(Modifiers::NONE));
     h.step();
     commands(h)
 }
@@ -112,9 +126,8 @@ fn save_writes_the_file_then_closes() {
     h.run_steps(2);
     request_close(&mut h);
     h.run_steps(2);
-    h.key_press(Key::Enter);
-    h.step();
-    assert!(commands(&h).contains(&ViewportCommand::Close), "Save then close: {:?}", commands(&h));
+    let cmds = press(&mut h, Modifiers::NONE, Key::Enter);
+    assert!(cmds.contains(&ViewportCommand::Close), "Save then close: {cmds:?}");
     assert!(h.state().quit_confirmed);
     let saved: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().collect();
     assert_eq!(saved.len(), 1, "one presentation saved: {saved:?}");
@@ -127,16 +140,14 @@ fn save_writes_the_file_then_closes() {
 #[test]
 fn command_q_requests_a_close_that_asks() {
     let mut h = edited();
-    h.key_press_modifiers(Modifiers::MAC_CMD | Modifiers::COMMAND, Key::Q);
-    h.step();
-    assert!(commands(&h).contains(&ViewportCommand::Close), "⌘Q asks the window to close: {:?}", commands(&h));
+    let cmds = press(&mut h, Modifiers::MAC_CMD | Modifiers::COMMAND, Key::Q);
+    assert!(cmds.contains(&ViewportCommand::Close), "⌘Q asks the window to close: {cmds:?}");
     assert!(!h.state().quit_confirmed, "⌘Q itself confirms nothing");
     // The platform turns that command into a close request, which asks.
     assert!(request_close(&mut h).contains(&ViewportCommand::CancelClose));
     assert_eq!(dialog(&h).as_deref(), Some("quit"));
 
     let mut h = edited();
-    h.key_press_modifiers(Modifiers::CTRL, Key::Q);
-    h.step();
-    assert!(!commands(&h).contains(&ViewportCommand::Close), "Ctrl+Q is not a quit shortcut here");
+    let cmds = press(&mut h, Modifiers::CTRL | Modifiers::COMMAND, Key::Q);
+    assert!(!cmds.contains(&ViewportCommand::Close), "Ctrl+Q is not a quit shortcut here: {cmds:?}");
 }
