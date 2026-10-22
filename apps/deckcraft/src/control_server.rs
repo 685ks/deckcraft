@@ -14,7 +14,7 @@
 //! address only, and peers that are not loopback addresses are refused.
 
 use std::io::{BufRead, BufReader, ErrorKind, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, TrySendError, sync_channel};
@@ -258,6 +258,32 @@ fn serve(stream: TcpStream, tx: &SyncSender<ControlRequest>, ctx: &egui::Context
                 log::debug!("control client stopped reading replies; closing");
             }
             break;
+        }
+    }
+    close_gracefully(&out, &mut reader);
+}
+
+/// How long [`close_gracefully`] waits for the client to stop sending.
+const DRAIN_TIMEOUT: Duration = Duration::from_millis(200);
+/// The most [`close_gracefully`] reads from a client that keeps sending.
+const DRAIN_MAX: usize = 64 * 1024;
+
+/// Closes a connection so that the client still gets the last reply. Closing a socket with
+/// unread input makes the kernel send a TCP reset, which can discard a reply the client has not
+/// read yet (an `unauthorized` reply when the client already sent its next line). So this ends
+/// the write side first and then reads and drops what the client sent, bounded in time and size.
+fn close_gracefully(out: &TcpStream, reader: &mut BufReader<TcpStream>) {
+    // The peer may already be gone; there is nothing to do about a failure here.
+    let _ = out.shutdown(Shutdown::Write);
+    if reader.get_ref().set_read_timeout(Some(DRAIN_TIMEOUT)).is_err() {
+        return;
+    }
+    let mut sink = [0u8; 4096];
+    let mut left = DRAIN_MAX;
+    while left > 0 {
+        match reader.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => left = left.saturating_sub(n),
         }
     }
 }

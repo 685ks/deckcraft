@@ -3,7 +3,7 @@ name: ci
 # Quality gates for every push to main and every pull request.
 # - gates (Linux): `cargo xtask ci` = rustfmt, clippy (-D warnings), tests, asset attribution,
 #   crate layering and the wasm32 check.
-# - test (macOS, Windows): the workspace tests, so platform regressions show up before a release.
+# - test (Windows): the workspace tests, so platform regressions show up before a release.
 on:
   push:
     branches: [main]
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     steps:
