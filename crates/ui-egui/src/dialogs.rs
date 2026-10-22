@@ -2660,7 +2660,7 @@ pub fn version_line() -> String {
 
 /// DeckCraft's mark, drawn in code: a slide card with a play triangle in the house colours.
 pub fn paint_logo(p: &egui::Painter, r: Rect) {
-    // The app icon's colours (packaging/make-icon.py): the house accent on its low tone.
+    // The house accent on its low tone, like the app icon (assets/app-icon/deckcraft.svg).
     let face = Color32::from(craft_tokens::color::ACCENT_BASE);
     let deep = Color32::from(craft_tokens::color::ACCENT_LOW);
     let card = r.shrink(r.width() * 0.08);
