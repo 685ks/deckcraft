@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="16" y="16" width="480" height="480" rx="112" fill="#0b0e14"/><rect x="246" y="340" width="20" height="92" rx="0" fill="#3d5a73"/><rect x="176" y="424" width="160" height="18" rx="9" fill="#3d5a73"/><rect x="80" y="100" width="352" height="248" rx="22" fill="#8fb8d8"/><rect x="116" y="136" width="168" height="22" rx="11" fill="#0b0f14"/><rect x="116" y="278" width="40" height="38" rx="6" fill="#0b0f14"/><rect x="176" y="236" width="40" height="80" rx="6" fill="#0b0f14"/><rect x="236" y="196" width="40" height="120" rx="6" fill="#0b0f14"/><circle cx="370" cy="182" r="30" fill="#d9c08a"/><rect x="19.0" y="19.0" width="474" height="474" rx="109.0" fill="none" stroke="#2a3442" stroke-width="6"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- DeckCraft app icon, Arthavan Projects house style: a light glyph on a dark tile in the app's own tint.
+       Original artwork drawn in code, MIT OR Apache-2.0 like the repository. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4d3723"/>
+      <stop offset="1" stop-color="#1a110a"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="4"/>
+  <g fill="none" stroke="#e1ba98" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 124 H412" />
+    <rect x="124" y="124" width="264" height="190" fill="#7f5939" fill-opacity="0.35" stroke-width="22"/>
+    <path d="M256 314 V360 M210 400 L256 360 L302 400" />
+    <path d="M172 268 V246 M226 268 V212 M280 268 V228 M334 268 V180" stroke="#f4dac2" stroke-width="26"/>
+  </g>
+  </g>
+</svg>

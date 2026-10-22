@@ -1,48 +1,57 @@
 #!/usr/bin/env bash
-# Regenerate the platform app icons from the committed PNGs in assets/app-icon/:
+# Regenerate every app icon file from assets/app-icon/deckcraft.svg.
 #
-#   assets/app-icon/deckcraft.ico    Windows (16–256 px, from hicolor/*)
-#   assets/app-icon/deckcraft.icns   macOS (16–1024 px, from deckcraft-1024.png; needs sips + iconutil)
+# Needs: resvg (cargo install resvg). On macOS, iconutil also writes the .icns. The outputs are
+# committed, so building and packaging never need these tools.
 #
-# The PNGs themselves are drawn by packaging/make-icon.py (which also writes the .ico and .icns).
-# The outputs are committed, so builds and packaging never need these tools; package scripts
-# call this only when an output is missing.
-#
-#   packaging/icons.sh [ico] [icns]     (default: both)
+#   packaging/icons.sh
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="$ROOT/assets/app-icon"
+SVG="$DIR/deckcraft.svg"
 ID="app.freedev.ainz.ks.DeckCraft"
-SRC="$DIR/deckcraft-1024.png"
-WANT="${*:-ico icns}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-case " $WANT " in
-  *" ico "*)
-    ICO_PNGS=()
-    for s in 16 24 32 48 64 128 256; do
-      ICO_PNGS+=("$DIR/hicolor/${s}x${s}/apps/$ID.png")
-    done
-    (cd "$ROOT" && cargo run -q -p xtask -- ico "$DIR/deckcraft.ico" "${ICO_PNGS[@]}")
-    echo "wrote $DIR/deckcraft.ico"
-    ;;
-esac
+command -v resvg >/dev/null || { echo "error: resvg not found (cargo install resvg)" >&2; exit 1; }
 
-case " $WANT " in
-  *" icns "*)
-    if command -v iconutil >/dev/null && command -v sips >/dev/null; then
-      SET="$TMP/deckcraft.iconset"
-      mkdir -p "$SET"
-      for s in 16 32 128 256 512; do
-        sips -z "$s" "$s" "$SRC" --out "$SET/icon_${s}x${s}.png" >/dev/null
-        d=$((s * 2))
-        sips -z "$d" "$d" "$SRC" --out "$SET/icon_${s}x${s}@2x.png" >/dev/null
-      done
-      iconutil -c icns -o "$DIR/deckcraft.icns" "$SET"
-      echo "wrote $DIR/deckcraft.icns"
-    else
-      echo "warning: sips/iconutil not found (macOS only); deckcraft.icns not regenerated" >&2
-    fi
-    ;;
-esac
+# The SVG is the full-bleed 512 tile (rx=112), used as is on Windows and Linux. macOS icons follow
+# Apple's grid: an 824/1024 body with a transparent margin, made by widening the viewBox.
+MAC="$TMP/macos.svg"
+sed 's/viewBox="0 0 512 512"/viewBox="-62 -62 636 636"/' "$SVG" >"$MAC"
+grep -q 'viewBox="-62 -62 636 636"' "$MAC" || { echo "error: unexpected viewBox in $SVG" >&2; exit 1; }
+
+render() { resvg -w "$2" -h "$2" "$1" "$3" </dev/null; }
+
+render "$SVG" 1024 "$DIR/deckcraft-1024.png"
+
+# Linux hicolor theme.
+for s in 16 24 32 48 64 128 256 512; do
+  mkdir -p "$DIR/hicolor/${s}x${s}/apps"
+  render "$SVG" "$s" "$DIR/hicolor/${s}x${s}/apps/$ID.png"
+done
+if [ -d "$DIR/hicolor/scalable/apps" ]; then
+  cp "$SVG" "$DIR/hicolor/scalable/apps/$ID.svg"
+fi
+
+# Windows .ico.
+ICO_PNGS=()
+for s in 16 20 24 32 40 48 64 128 256; do
+  render "$SVG" "$s" "$TMP/ico-$s.png"
+  ICO_PNGS+=("$TMP/ico-$s.png")
+done
+(cd "$ROOT" && cargo run -q -p xtask -- ico "$DIR/deckcraft.ico" "${ICO_PNGS[@]}")
+
+# macOS .icns.
+if command -v iconutil >/dev/null; then
+  SET="$TMP/deckcraft.iconset"
+  mkdir -p "$SET"
+  for s in 16 32 128 256 512; do
+    render "$MAC" "$s" "$SET/icon_${s}x${s}.png"
+    render "$MAC" $((s * 2)) "$SET/icon_${s}x${s}@2x.png"
+  done
+  iconutil -c icns -o "$DIR/deckcraft.icns" "$SET"
+else
+  echo "warning: iconutil not found (macOS only); deckcraft.icns not regenerated" >&2
+fi
+echo "icons written to $DIR"
