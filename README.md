@@ -6,8 +6,8 @@
 
 <p align="center">
   Build decks with themes, layouts, shapes, pictures, tables, charts, transitions and animations,
-  open and save .pptx presentation files, and present them full screen. Native on macOS, Windows, Linux
-  and FreeBSD, and in the browser. Every button is also a command that the CLI and AI agents
+  open and save .pptx presentation files, and present them full screen. Native on Windows, and in the
+  browser. Every button is also a command that the CLI and AI agents
   (through MCP) can drive.
 </p>
 
@@ -146,9 +146,6 @@ updates these builds for you; when it starts DeckCraft, updates are managed by t
 | Platform | Files |
 |---|---|
 | Windows x64 | `deckcraft-<ver>-windows-x64.msi`, `deckcraft-<ver>-windows-x64-portable.zip` |
-| macOS (Apple silicon + Intel) | `deckcraft-<ver>-macos-universal.dmg` |
-| Linux x86_64 | `deckcraft-<ver>-linux-x86_64.AppImage`, `.tar.gz`, `.deb`, `.rpm` |
-| Linux aarch64 | `deckcraft-<ver>-linux-aarch64.AppImage`, `.tar.gz`, `.deb`, `.rpm` |
 
 **If the app doesn't open on Windows:** the desktop app initializes only DirectX 12 by default.
 `WGPU_BACKEND` overrides the default for troubleshooting (for example `dx12` or `vulkan`). In
